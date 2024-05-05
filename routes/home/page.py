@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from flask import Blueprint, request, jsonify
 import requests
 from flask_cors import CORS
@@ -30,7 +31,13 @@ def get_data(item_name):
     try:
         settings = load_settings()
         api_key = settings['apiKey']
-        response = requests.get(f'https://api.themoviedb.org/3/tv/{item_name}?language={settings["language"]}',
+        
+        # Extracting only the number from the folder name
+        folder_number = re.search(r'\d+', item_name).group()
+
+        print(folder_number)
+        
+        response = requests.get(f'https://api.themoviedb.org/3/tv/{folder_number}?language={settings["language"]}',
                         headers={'Authorization': f'Bearer {api_key}'})
         response.raise_for_status()
         movie_data = response.json()
@@ -43,10 +50,6 @@ def get_data(item_name):
     except requests.RequestException as e:
         print(f"Error al obtener información de la API para {item_name}: {str(e)}")
         return {"error": "No se pudo obtener información."}
-    
-    
-
-
 
 @bp.route('/', methods=['POST', 'GET', 'OPTIONS'])
 def home():

@@ -9,16 +9,35 @@ from routes.health import page as health
 
 SETTINGS_FILE = 'settings.json'
 
+def prod():
+    if getattr(sys, 'frozen', False):  
+        return True
+    else:
+        return False
+
+dev = prod()
+
+print(f"Running in production mode: {dev}")
+
 def load_settings():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
+    current_dir = os.getcwd()
     settings_path = os.path.join(current_dir, SETTINGS_FILE)
-    print(settings_path)
+
     if os.path.exists(settings_path):
         with open(settings_path, 'r') as file:
             return json.load(file)
-    return None
-
+    else:
+        default_settings = {
+            'path': '',
+            'format': 'mp4',
+            'language': 'en',
+            'apiKey': ''
+        }
+        with open(settings_path, 'w') as file:
+            json.dump(default_settings, file)
+        print(f"Settings created on: {settings_path}")
+        return default_settings
+    
 settings = load_settings()
 
 def start_flask():

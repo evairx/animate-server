@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, request, jsonify
 import requests
 from flask_cors import CORS
+import re
 
 bp = Blueprint('details', __name__)
 CORS(bp, origins=["*"])
@@ -30,7 +31,9 @@ def get_episode_from_api(series_id, season_number, episode_number):
     try:
         settings = load_settings()
         api_key = settings['apiKey']
-        response = requests.get(f'https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/episode/{episode_number}?language={settings["language"]}',
+        
+        id = re.search(r'\d+', series_id).group()
+        response = requests.get(f'https://api.themoviedb.org/3/tv/{id}/season/{season_number}/episode/{episode_number}?language={settings["language"]}',
                         headers={'Authorization': f'Bearer {api_key}'})
         response.raise_for_status()
         episode_data = response.json()
@@ -47,11 +50,43 @@ def get_episode_from_api(series_id, season_number, episode_number):
         print(f"Error al obtener información del episodio: {str(e)}")
         return None
     
+def get_season(series_id, season_number):
+    try:
+        settings = load_settings()
+        api_key = settings['apiKey']
+        
+        id = re.search(r'\d+', series_id).group()
+        if settings["language"] == "es":
+            response = requests.get(f'https://api.themoviedb.org/3/tv/{id}/season/{season_number}?language=en',
+                        headers={'Authorization': f'Bearer {api_key}'})
+        else:
+            response = requests.get(f'https://api.themoviedb.org/3/tv/{id}/season/{season_number}?language={settings["language"]}',
+                        headers={'Authorization': f'Bearer {api_key}'})
+        response.raise_for_status()
+        movie_data = response.json()
+        name = movie_data['name']
+
+        if settings["language"] == "es":
+            if name == "Specials":
+                name = "Especiales"
+            elif "Season" in name:
+                season_number = name.split(" ")[-1]
+                name = f"Temporada {season_number}"
+                
+        return name
+    except requests.RequestException as e:
+        print(f"Error al obtener información de la API para {series_id}: {str(e)}")
+        return None
+    
 def get_data_details(item_name):
     try:
         settings = load_settings()
         api_key = settings['apiKey']
-        response = requests.get(f'https://api.themoviedb.org/3/tv/{item_name}?language={settings["language"]}',
+        
+        # Extracting only the number from the item_name (folder name)
+        item_number = re.search(r'\d+', item_name).group()
+        
+        response = requests.get(f'https://api.themoviedb.org/3/tv/{item_number}?language={settings["language"]}',
                         headers={'Authorization': f'Bearer {api_key}'})
         response.raise_for_status()
         movie_data = response.json()
@@ -89,8 +124,9 @@ def details(id):
                     for item in os.listdir(folder_path):
                         if os.path.isdir(os.path.join(folder_path, item)) and item.startswith('season-'):
                             season_number = item.split('-')[-1]
+                            season_name = get_season(id, season_number)
                             season_info = {
-                                'name': f'Temporada {season_number}',
+                                'name': f'{season_name}',
                                 'season_number': int(season_number),
                             }
                             episodes = []
@@ -101,16 +137,18 @@ def details(id):
                                     episode_info = get_episode_from_api(id, season_number, int(episode_number))
                                     episodes.append(episode_info)
                             if episodes:
+                                # Ordenar los episodios por número de episodio
+                                episodes = sorted(episodes, key=lambda e: e['episode_number'])
                                 season_info['episodes'] = episodes
                                 seasons.append(season_info)
                 else:
-                    # If the format is not 'mp4', continue with the existing logic
                     seasons = []
                     for item in os.listdir(folder_path):
                         if os.path.isdir(os.path.join(folder_path, item)) and item.startswith('season-'):
                             season_number = item.split('-')[-1]
+                            season_name = get_season(id, season_number)
                             season_info = {
-                                'name': f'Temporada {season_number}',
+                                'name': f'{season_name}',
                                 'season_number': int(season_number),
                             }
                             episodes = []
@@ -122,6 +160,8 @@ def details(id):
                                     if episode_info:
                                         episodes.append(episode_info)
                             if episodes:
+                                # Ordenar los episodios por número de episodio
+                                episodes = sorted(episodes, key=lambda e: e['episode_number'])
                                 season_info['episodes'] = episodes
                                 seasons.append(season_info)
 

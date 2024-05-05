@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from flask import Blueprint, request, jsonify
 import requests
 from flask_cors import CORS
@@ -22,13 +23,15 @@ def get_episode_from_api(series_id, season_number, episode_number):
     try:
         settings = load_settings()
         api_key = settings['apiKey']
-        # Fetching episode data
-        episode_response = requests.get(f'https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/episode/{episode_number}?language={settings["language"]}',
+        
+        id = re.search(r'\d+', series_id).group()
+
+        episode_response = requests.get(f'https://api.themoviedb.org/3/tv/{id}/season/{season_number}/episode/{episode_number}?language={settings["language"]}',
                         headers={'Authorization': f'Bearer {api_key}'})
         episode_response.raise_for_status()
         episode_data = episode_response.json()
         # Fetching season data
-        season_response = requests.get(f'https://api.themoviedb.org/3/tv/{series_id}?language={settings["language"]}',
+        season_response = requests.get(f'https://api.themoviedb.org/3/tv/{id}?language={settings["language"]}',
                         headers={'Authorization': f'Bearer {api_key}'})
         season_response.raise_for_status()
         seasons_data = season_response.json()
