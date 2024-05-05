@@ -1,0 +1,8 @@
+.venv
+__test__.py
+routes/*/__pycache__/
+routes/*/*/__pycache__/
+build/
+dist/
+main.spec
+settings.json
