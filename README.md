@@ -21,15 +21,15 @@ Animate Server reads the given path, and scans all the folders in that path, onc
 }
  ```
 3. Re-start the server and enjoy the server
-4. 
+
 ## How do I order my series/movies in PATH?
 Inside the folder that you will use as path in the .json, you must sort correctly your anime series or movies for it to work correctly. follow the next steps
 
 1. You must get the anime ID from <a href="https://www.themoviedb.org/?language=es">TMDB</a>.
-2. Once the id is obtained, create the folder that will simulate the series and name it as follows: ``{id}`` or  ``name-folder-{id}``
+2. Once the id is obtained, create the folder that will simulate the series and name it as follows: ``{id}`` or  ``name-folder-{id}``</br>
 **EXAMPLE**:
 <img src="https://raw.githubusercontent.com/evairx/animate-server/main/.github/doc/example-path-1.PNG?token=GHSAT0AAAAAACMXNXNF74RJDOFKD4GO2WRMZR5T7SQ"/>
-3.   Once you have created the folder for the series, create another folder containing the seasons with the following name: ``season-{number}``
+3.   Once you have created the folder for the series, create another folder containing the seasons with the following name: ``season-{number}``</br>
 **EXAMPLE**:
 <img src="https://raw.githubusercontent.com/evairx/animate-server/main/.github/doc/example-path-2.PNG?token=GHSAT0AAAAAACMXNXNE3EADFWV3MYC2YSVUZR5UAZQ"/>
 ## What video format can I use?
