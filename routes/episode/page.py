@@ -1,7 +1,8 @@
 import os
 import json
+import sys
 import re
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
 import requests
 from flask_cors import CORS
 
@@ -10,14 +11,32 @@ CORS(bp, origins=["*"])
 
 SETTINGS_FILE = 'settings.json'
 
-def load_settings():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(os.path.dirname(current_dir))
-    settings_path = os.path.join(root_dir, SETTINGS_FILE)
-    if os.path.exists(settings_path):
-        with open(settings_path, 'r') as file:
-            return json.load(file)
-    return None
+def prod():
+    if getattr(sys, 'frozen', False):  
+        return True
+    else:
+        return False
+    
+dev = prod()
+
+if dev:
+    def load_settings():
+        current_dir = os.getcwd()
+        settings_path = os.path.join(current_dir, SETTINGS_FILE)
+
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as file:
+                return json.load(file)
+        return None
+else:
+    def load_settings():
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(current_dir))
+        settings_path = os.path.join(root_dir, SETTINGS_FILE)
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as file:
+                return json.load(file)
+        return None
 
 def get_episode_from_api(series_id, season_number, episode_number):
     try:

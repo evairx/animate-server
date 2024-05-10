@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 from flask import Blueprint, request, jsonify
 import requests
 from flask_cors import CORS
@@ -10,14 +11,32 @@ CORS(bp, origins=["*"])
 
 SETTINGS_FILE = 'settings.json'
 
-def load_settings():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(os.path.dirname(current_dir))
-    settings_path = os.path.join(root_dir, SETTINGS_FILE)
-    if os.path.exists(settings_path):
-        with open(settings_path, 'r') as file:
-            return json.load(file)
-    return None
+def prod():
+    if getattr(sys, 'frozen', False):  
+        return True
+    else:
+        return False
+    
+dev = prod()
+
+if dev:
+    def load_settings():
+        current_dir = os.getcwd()
+        settings_path = os.path.join(current_dir, SETTINGS_FILE)
+
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as file:
+                return json.load(file)
+        return None
+else:
+    def load_settings():
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(current_dir))
+        settings_path = os.path.join(root_dir, SETTINGS_FILE)
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as file:
+                return json.load(file)
+        return None
 
 def get_movies_folder():
     settings = load_settings()
@@ -103,75 +122,79 @@ def get_data_details(item_name):
 
 @bp.route('/<id>', methods=['GET'])
 def details(id):
-    if request.method == 'OPTIONS':
-        response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response, 200
-    elif request.method == 'GET':
-        try:
-            movies_folder = get_movies_folder()
-            if movies_folder:
-                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                folder_path = os.path.join(root_dir, movies_folder, id)
-                if not os.path.exists(folder_path):
-                    return jsonify({'error': 'La carpeta con el ID proporcionado no existe'}), 500
-
-                settings = load_settings()
-                if settings and settings['format'] == 'mp4':
-                    seasons = []
-                    for item in os.listdir(folder_path):
-                        if os.path.isdir(os.path.join(folder_path, item)) and item.startswith('season-'):
-                            season_number = item.split('-')[-1]
-                            season_name = get_season(id, season_number)
-                            season_info = {
-                                'name': f'{season_name}',
-                                'season_number': int(season_number),
-                            }
-                            episodes = []
-                            season_folder = os.path.join(folder_path, item)
-                            for episode_file in os.listdir(season_folder):
-                                if episode_file.endswith('.mp4'):
-                                    episode_number = os.path.splitext(episode_file)[0]
-                                    episode_info = get_episode_from_api(id, season_number, int(episode_number))
-                                    episodes.append(episode_info)
-                            if episodes:
-                                # Ordenar los episodios por número de episodio
-                                episodes = sorted(episodes, key=lambda e: e['episode_number'])
-                                season_info['episodes'] = episodes
-                                seasons.append(season_info)
-                else:
-                    seasons = []
-                    for item in os.listdir(folder_path):
-                        if os.path.isdir(os.path.join(folder_path, item)) and item.startswith('season-'):
-                            season_number = item.split('-')[-1]
-                            season_name = get_season(id, season_number)
-                            season_info = {
-                                'name': f'{season_name}',
-                                'season_number': int(season_number),
-                            }
-                            episodes = []
-                            season_folder = os.path.join(folder_path, item)
-                            for episode_folder in os.listdir(season_folder):
-                                episode_path = os.path.join(season_folder, episode_folder)
-                                if os.path.isdir(episode_path) and episode_folder.isdigit() and int(episode_folder) > 0:
-                                    episode_info = get_episode_from_api(id, season_number, int(episode_folder))
-                                    if episode_info:
-                                        episodes.append(episode_info)
-                            if episodes:
-                                # Ordenar los episodios por número de episodio
-                                episodes = sorted(episodes, key=lambda e: e['episode_number'])
-                                season_info['episodes'] = episodes
-                                seasons.append(season_info)
-
-                movie_info = get_data_details(id)
+    try:
+        movies_folder = get_movies_folder()
+        if movies_folder:
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            folder_path = os.path.join(root_dir, movies_folder, id)
+            if not os.path.exists(folder_path):
+                return jsonify({'error': 'La carpeta con el ID proporcionado no existe'}), 500
+            
+            season_folders = [f for f in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, f)) and f.startswith('season-')]
+            seasons = []
+            for season_folder in season_folders:
+                season_number = int(season_folder.split('-')[-1])
+                season_name = get_season(id, season_number)
+                season_info = {'number': season_number, 'name': season_name}
+                seasons.append(season_info)
+            
+            movie_info = get_data_details(id)
+            if seasons:
                 movie_info['seasons'] = seasons
 
-                return jsonify(movie_info), 200
+            return jsonify(movie_info), 200
+        else:
+            return jsonify({'error': 'El archivo de configuración settings.json no está configurado correctamente'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@bp.route('/<id>/<season>', methods=['GET'])
+def getSeason(id, season):
+    try:
+        movies_folder = get_movies_folder()
+        if movies_folder:
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            folder_path = os.path.join(root_dir, movies_folder, id)
+            if not os.path.exists(folder_path):
+                return jsonify({'error': 'La carpeta con el ID proporcionado no existe'}), 500
+            
+            season_folder = os.path.join(folder_path, f'{season}')
+            print("Revisando carpeta:", season_folder)  # Impresión de la carpeta que se está revisando
+            if not os.path.exists(season_folder):
+                return jsonify({'error': f'La carpeta de la temporada {season} no existe'}), 500
+
+            settings = load_settings()
+            season_number = season.replace("season-", "")
+            season_name = get_season(id, season_number)
+            season_info = {
+                'name': f'{season_name}',
+                'season_number': season_number,
+                'episodes': []  # Inicialmente vacía
+            }
+            if settings and settings['format'] == 'mp4':
+                episodes = []
+                for episode_file in os.listdir(season_folder):
+                    if episode_file.endswith('.mp4'):
+                        episode_number = os.path.splitext(episode_file)[0]
+                        episode_info = get_episode_from_api(id, season_number, int(episode_number))
+                        episodes.append(episode_info)
+                if episodes:
+                    episodes = sorted(episodes, key=lambda e: e['episode_number'])
+                    season_info['episodes'] = episodes
             else:
-                return jsonify({'error': 'El archivo de configuración settings.json no está configurado correctamente'}), 500
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    elif request.method == 'POST':
-        return jsonify({'error': "method not allowed"}), 400
+                episodes = []
+                for episode_folder in os.listdir(season_folder):
+                    episode_path = os.path.join(season_folder, episode_folder)
+                    if os.path.isdir(episode_path) and episode_folder.isdigit() and int(episode_folder) > 0:
+                        episode_info = get_episode_from_api(id, season_number, int(episode_folder))
+                        if episode_info:
+                            episodes.append(episode_info)
+                if episodes:
+                    episodes = sorted(episodes, key=lambda e: e['episode_number'])
+                    season_info['episodes'] = episodes
+
+            return jsonify(season_info), 200
+        else:
+            return jsonify({'error': 'El archivo de configuración settings.json no está configurado correctamente'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
