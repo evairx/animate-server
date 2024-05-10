@@ -28,14 +28,10 @@ Inside the folder that you will use as path in the .json, you must sort correctl
 1. You must get the anime ID from <a href="https://www.themoviedb.org/?language=es">TMDB</a>.
 2. Once the id is obtained, create the folder that will simulate the series and name it as follows: ``{id}`` or  ``name-folder-{id}``
 **EXAMPLE**:
-/ 📁PATH
-|── ``📁Swort-Art-Online-45782`` or ``45782``
-
+<img src="https://raw.githubusercontent.com/evairx/animate-server/main/.github/doc/example-path-1.PNG?token=GHSAT0AAAAAACMXNXNF74RJDOFKD4GO2WRMZR5T7SQ"/>
 3.   Once you have created the folder for the series, create another folder containing the seasons with the following name: ``season-{number}``
 **EXAMPLE**:
-/ 📁PATH
-|── ``📁Swort-Art-Online-45782`` or ``45782``
-|          ├── ``📁 season-1``
+<img src="https://raw.githubusercontent.com/evairx/animate-server/main/.github/doc/example-path-2.PNG?token=GHSAT0AAAAAACMXNXNE3EADFWV3MYC2YSVUZR5UAZQ"/>
 ## What video format can I use?
 
 Well, the formats of the videos is important, since this will recognize the videos that are in your anime path and will configure the Animate Client player, the formats that you can use are as follows
