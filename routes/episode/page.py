@@ -119,6 +119,16 @@ def get_episode(id, season, episode):
             elif settings['format'] == 'dash':
                 public_link = f"public/{id}/{season}/{episode}/output.mpd"
             episode_info['link'] = public_link
+            
+            # Check if there is a next episode available
+            next_episode_number = int(episode) + 1
+            next_episode_file_path = get_episode_file_path(settings, id, season_number, str(next_episode_number))
+            if next_episode_file_path:
+                next_episode_info = {
+                    "link": f"/{id}/{season}/{next_episode_number}",
+                }
+                episode_info['nextEpisode'] = next_episode_info
+            
             return jsonify(episode_info)
         else:
             return jsonify({'error': 'El episodio no existe en la carpeta'}), 404
